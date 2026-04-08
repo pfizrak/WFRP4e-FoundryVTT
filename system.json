@@ -3,7 +3,7 @@
   "title": "Warhammer Fantasy Roleplay 4th Edition",
   "description": "A comprehensive system for running grim and perilous games of Warhammer Fantasy Roleplay in the Foundry VTT environment.",
   "version": "9.5.0",
-  "authors" : [
+  "authors": [
     {
       "name": "Moo Man",
       "email": "russellt@cubicle7games.com",
@@ -14,9 +14,14 @@
       "name": "CatoThe1stElder"
     }
   ],
-  "esmodules" : [],
-  "scripts": ["wfrp4e.js", "./libs/pixi-filters.js"],
-  "styles": ["wfrp4e.css"],
+  "esmodules": [],
+  "scripts": [
+    "wfrp4e.js",
+    "./libs/pixi-filters.js"
+  ],
+  "styles": [
+    "wfrp4e.css"
+  ],
   "packs": [
     {
       "name": "basic",
@@ -39,13 +44,17 @@
       "url": "https://user-images.githubusercontent.com/28637157/97379891-e4a1cc00-1893-11eb-9e0c-d93b92844d5b.jpg"
     }
   ],
-  "flags" : {
-    "hotReload": { 
-      "extensions": ["css", "hbs", "json"]
+  "flags": {
+    "hotReload": {
+      "extensions": [
+        "css",
+        "hbs",
+        "json"
+      ]
     }
   },
   "initiative": "@characteristics.i.value + @characteristics.ag.value/100",
-  "background" : "systems/wfrp4e/WFRP-Header.jpg",
+  "background": "systems/wfrp4e/WFRP-Header.jpg",
   "grid": {
     "distance": 2,
     "units": "yd",
@@ -54,24 +63,26 @@
   },
   "primaryTokenAttribute": "status.wounds",
   "secondaryTokenAttribute": "status.advantage",
-  "compatibility" : {
-    "minimum" : 13,
-    "verified" : 14,
-    "maximum" : 14
+  "compatibility": {
+    "minimum": 13,
+    "verified": 14,
+    "maximum": 14
   },
   "relationships": {
-    "requires": [{
-      "id": "warhammer-lib",
-      "type": "module",
-      "manifest": "https://raw.githubusercontent.com/moo-man/WarhammerLibrary-FVTT/3.0.0/module.json",
-      "compatibility": {
-        "minimum" : "2.9.1",
-        "verified": "3.0.0"
+    "requires": [
+      {
+        "id": "warhammer-lib",
+        "type": "module",
+        "manifest": "https://github.com/pfizrak/WarhammerLibrary-FVTT/releases/latest/download/module.json",
+        "compatibility": {
+          "minimum": "2.9.1",
+          "verified": "3.0.0"
+        }
       }
-    }]
+    ]
   },
   "socket": true,
-  "manifest" :  "https://github.com/moo-man/WFRP4e-FoundryVTT/releases/latest/download/system.json",
-  "download" :  "https://github.com/moo-man/WFRP4e-FoundryVTT/releases/download/9.5.0/wfrp4e.zip",
-  "url" : "https://github.com/moo-man/WFRP4e-FoundryVTT"
+  "manifest": "https://github.com/pfizrak/WFRP4e-FoundryVTT/releases/latest/download/system.json",
+  "download": "https://github.com/pfizrak/WFRP4e-FoundryVTT/releases/download/9.5.0/wfrp4e.zip",
+  "url": "https://github.com/pfizrak/WFRP4e-FoundryVTT"
 }
