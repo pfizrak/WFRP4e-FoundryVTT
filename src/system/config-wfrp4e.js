@@ -1107,7 +1107,7 @@ WFRP4E.transferTypes = {
     other : "WH.TransferType.Other"
 },
 
-WFRP4E.premiumModules = {
+WFRP4E.moduleRegistry = {
     "wfrp4e" : "WFRP4e System",
     "wfrp4e-core" : "Core Rulebook",
     "wfrp4e-starter-set" : "Starter Set",
