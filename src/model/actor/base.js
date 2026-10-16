@@ -30,8 +30,8 @@ export class BaseActorModel extends BaseWarhammerActorModel {
     static _deriveSource(uuid) {
         const source = super._deriveSource(uuid);
 
-        if (game.wfrp4e.config.premiumModules[source.slug])
-            source.value = game.wfrp4e.config.premiumModules[source.slug];
+        if (game.wfrp4e.config.moduleRegistry[source.slug])
+            source.value = game.wfrp4e.config.moduleRegistry[source.slug];
 
         return source;
     }
