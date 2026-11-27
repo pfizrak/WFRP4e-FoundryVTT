@@ -1,0 +1,128 @@
+name: Sync upstream and release
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: sync-and-release
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for new upstream release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          UPSTREAM_TAG=$(gh release view --repo moo-man/WFRP4e-FoundryVTT --json tagName -q .tagName)
+          FORK_TAG=$(gh release view --repo pfizrak/WFRP4e-FoundryVTT --json tagName -q .tagName 2>/dev/null || echo "none")
+          echo "upstream=$UPSTREAM_TAG" >> "$GITHUB_OUTPUT"
+          echo "fork=$FORK_TAG" >> "$GITHUB_OUTPUT"
+          if [ "$UPSTREAM_TAG" = "$FORK_TAG" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Already up to date: $UPSTREAM_TAG"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "New upstream release: $UPSTREAM_TAG (fork has: $FORK_TAG)"
+          fi
+
+      - name: Checkout fork
+        if: steps.check.outputs.skip == 'false'
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Reset to upstream tag
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          TAG="${{ steps.check.outputs.upstream }}"
+          git remote add upstream https://github.com/moo-man/WFRP4e-FoundryVTT.git || true
+          git fetch upstream --tags --force
+          git reset --hard "$TAG"
+
+      - name: Restore fork workflows
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          mkdir -p .github/workflows
+          curl -fsSL "https://raw.githubusercontent.com/pfizrak/WFRP4e-FoundryVTT/master/.github/workflows/release.yml" \
+            -o .github/workflows/release.yml
+          curl -fsSL "https://raw.githubusercontent.com/pfizrak/WFRP4e-FoundryVTT/master/.github/workflows/sync-and-release.yml" \
+            -o .github/workflows/sync-and-release.yml
+
+      - name: Patch premiumModules
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          sed -i 's/\bpremiumModules\b/moduleRegistry/g' src/system/config-wfrp4e.js
+          sed -i 's/\bpremiumModules\b/moduleRegistry/g' src/model/actor/base.js
+          sed -i 's/\bpremiumModules\b/moduleRegistry/g' src/model/item/components/base.js
+          echo "Verify patch:"
+          grep -rn "premiumModules" src/ && echo "ERROR: premiumModules still found" && exit 1 || echo "OK: no premiumModules references remain"
+          grep -rn "moduleRegistry" src/ | head -10
+
+      - name: Patch system.json URLs
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          sed -i 's|moo-man/WFRP4e-FoundryVTT|pfizrak/WFRP4e-FoundryVTT|g' system.json
+          sed -i 's|moo-man/WarhammerLibrary-FVTT|pfizrak/WarhammerLibrary-FVTT|g' system.json
+          python3 - <<'PYEOF'
+          import json
+          with open("system.json", "r") as f:
+              data = json.load(f)
+          for req in data.get("relationships", {}).get("requires", []):
+              if req.get("id") == "warhammer-lib":
+                  req["manifest"] = "https://github.com/pfizrak/WarhammerLibrary-FVTT/releases/latest/download/module.json"
+          with open("system.json", "w") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          PYEOF
+          echo "Patched system.json:"
+          cat system.json
+
+      - name: Commit and tag
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          TAG="${{ steps.check.outputs.upstream }}"
+          git config user.name "pfizrak"
+          git config user.email "209234886+pfizrak@users.noreply.github.com"
+          git add -A
+          git commit -m "Apply local configuration"
+          git tag -f "$TAG"
+          git push origin master --force
+          git push origin "$TAG" --force
+
+      - name: Trigger release workflow
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.check.outputs.upstream }}"
+          gh workflow run release.yml --repo "${{ github.repository }}" -f tag="$TAG"
+
+      - name: Wait for release to complete
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Waiting for release workflow to start..."
+          sleep 15
+          RUN_ID=$(gh run list --workflow=release.yml --repo "${{ github.repository }}" --limit=1 --json databaseId -q '.[0].databaseId')
+          echo "Watching run $RUN_ID"
+          gh run watch "$RUN_ID" --repo "${{ github.repository }}" --exit-status
+
+      - name: Copy upstream release notes
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.check.outputs.upstream }}"
+          gh release view "$TAG" --repo moo-man/WFRP4e-FoundryVTT --json body -q .body | \
+            gh release edit "$TAG" --repo "${{ github.repository }}" --notes-file -
